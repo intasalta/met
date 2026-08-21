@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agrometeorología INTA EEA Salta - Cerrillos</title>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-header: linear-gradient(135deg, #00529c 0%, #003366 100%);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --accent-primary: #00529c;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-rose: #ef4444;
+            --accent-indigo: #6366f1;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+            --radius: 12px;
+            --tab-active-bg: #ffffff;
+            --tab-active-text: #00529c;
+        }
+
+        [data-theme="dark"] {
+            --bg-primary: #0f172a;
+            --bg-card: #1e293b;
+            --bg-header: linear-gradient(135deg, #020617 0%, #0f172a 100%);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: #334155;
+            --accent-primary: #3b82f6;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+            --tab-active-bg: #1e293b;
+            --tab-active-text: #60a5fa;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            padding: 24px;
+            min-height: 100vh;
+        }
+
+        .top-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .tabs-container {
+            display: flex;
+            background: var(--bg-card);
+            padding: 4px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 10px 18px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tab-btn.active {
+            background: var(--tab-active-bg);
+            color: var(--tab-active-text);
+            box-shadow: var(--shadow);
+        }
+
+        .theme-toggle {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 10px 16px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .header {
+            background: var(--bg-header);
+            color: white;
+            padding: 24px 32px;
+            border-radius: var(--radius);
+            margin-bottom: 24px;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .inta-logo {
+            height: 60px;
+            width: auto;
+            background: white;
+            padding: 6px;
+            border-radius: 8px;
+            object-fit: contain;
+        }
+
+        .header-title h1 {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .header-title p {
+            color: #cbd5e1;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .station-badge {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            font-size: 13px;
+            line-height: 1.5;
+            color: #f8fafc;
+        }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .filters-bar {
+            background: var(--bg-card);
+            padding: 16px 24px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            box-shadow: var(--shadow);
+        }
+
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .filter-group label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        select {
+            padding: 8px 14px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            font-size: 14px;
+            font-weight: 500;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .kpi-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .kpi-value {
+            font-size: 26px;
+            font-weight: 700;
+            margin: 12px 0 4px 0;
+            color: var(--text-main);
+        }
+
+        .kpi-subtext {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .charts-grid { grid-template-columns: 1fr; }
+        }
+
+        .chart-card {
+            background: var(--bg-card);
+            padding: 20px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .chart-header { margin-bottom: 16px; }
+
+        .chart-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 320px;
+            width: 100%;
+        }
+
+        .full-width { grid-column: 1 / -1; }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: right;
+        }
+
+        th {
+            background-color: var(--bg-primary);
+            padding: 10px 14px;
+            font-weight: 600;
+            color: var(--text-muted);
+            position: sticky;
+            top: 0;
+            border-bottom: 2px solid var(--border);
+        }
+
+        th:first-child, td:first-child { text-align: left; font-weight: 600; }
+        td { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+
+        .icon-box {
+            padding: 8px;
+            border-radius: 8px;
+            display: inline-flex;
+        }
+
+        .icon-temp-max { background: rgba(239, 68, 68, 0.15); color: var(--accent-rose); }
+        .icon-temp-avg { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); }
+        .icon-temp-min { background: rgba(37, 99, 235, 0.15); color: var(--accent-primary); }
+        .icon-rain { background: rgba(16, 185, 129, 0.15); color: var(--accent-emerald); }
+        .icon-humidity { background: rgba(99, 102, 241, 0.15); color: var(--accent-indigo); }
+
+        .info-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+        }
+
+        .info-card h2 {
+            font-size: 22px;
+            margin-bottom: 16px;
+            color: var(--accent-primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-card h3 {
+            font-size: 18px;
+            margin: 20px 0 10px 0;
+            color: var(--text-main);
+        }
+
+        .info-card p {
+            line-height: 1.7;
+            color: var(--text-main);
+            font-size: 15px;
+            margin-bottom: 12px;
+        }
+
+        .info-card ul {
+            margin-left: 20px;
+            margin-bottom: 16px;
+            line-height: 1.7;
+        }
+
+        .person-profile {
+            display: flex;
+            gap: 24px;
+            margin-top: 20px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: var(--bg-primary);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            align-items: flex-start;
+        }
+
+        @media (max-width: 768px) {
+            .person-profile { flex-direction: column; }
+        }
+
+        .person-img {
+            width: 180px;
+            height: 220px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            border: 2px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .person-info { flex-grow: 1; }
+
+        .person-info h4 {
+            font-size: 18px;
+            color: var(--accent-primary);
+            margin-bottom: 6px;
+        }
+
+        .person-info .role {
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .credits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .credit-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .credit-card img {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .credit-card h5 {
+            font-size: 16px;
+            color: var(--text-main);
+        }
+
+        .credit-card p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="top-nav">
+        <div class="tabs-container">
+            <button class="tab-btn active" onclick="switchTab('dashboard', event)">
+                <i data-lucide="layout-dashboard"></i> Dashboard
+            </button>
+            <button class="tab-btn" onclick="switchTab('lerma', event)">
+                <i data-lucide="map-pin"></i> Valle de Lerma
+            </button>
+            <button class="tab-btn" onclick="switchTab('historia', event)">
+                <i data-lucide="history"></i> Historia y Protagonistas
+            </button>
+            <button class="tab-btn" onclick="switchTab('creditos', event)">
+                <i data-lucide="award"></i> Institucional y Créditos
+            </button>
+        </div>
+
+        <button class="theme-toggle" onclick="toggleTheme()">
+            <i data-lucide="moon" id="themeIcon"></i>
+            <span id="themeText">Modo Oscuro</span>
+        </button>
+    </div>
+
+    <div class="header">
+        <div class="header-brand">
+            <img src="Logo_INTA.png" alt="Logo INTA" class="inta-logo" onerror="this.style.display='none'">
+            <div class="header-title">
+                <h1>Dashboard Agrometeorológico - Cerrillos</h1>
+                <p>INTA EEA Salta | Serie Histórica Agroclimática</p>
+            </div>
+        </div>
+        <div class="station-badge">
+            <strong>Estación Agrometeorológica INTA Cerrillos</strong><br>
+            Ruta Nacional 68 Km 172, Cerrillos, Salta<br>
+            Lat 24° 53' 39" S | Long 65° 28' 15" O | 1235 msnm
+        </div>
+    </div>
+
+    <div id="dashboard" class="tab-content active">
+        <div class="filters-bar">
+            <div class="filter-group">
+                <label for="yearSelect"><i data-lucide="calendar"></i> Selección de Año:</label>
+                <select id="yearSelect" onchange="updateDashboard()"></select>
+            </div>
+            <div class="filter-group">
+                <label for="compareSelect"><i data-lucide="git-compare"></i> Comparar con:</label>
+                <select id="compareSelect" onchange="updateDashboard()">
+                    <option value="none">Ninguno (Promedio Histórico)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-title">Precipitación Total <div class="icon-box icon-rain"><i data-lucide="cloud-rain"></i></div></div>
+                <div class="kpi-value" id="kpiPrecip">-- mm</div>
+                <div class="kpi-subtext" id="kpiPrecipSub">vs promedio histórico</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Temp. Máxima Absoluta <div class="icon-box icon-temp-max"><i data-lucide="thermometer-sun"></i></div></div>
+                <div class="kpi-value" id="kpiTempMax">-- °C</div>
+                <div class="kpi-subtext" id="kpiTempMaxSub">Pico anual</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Temp. Media Anual <div class="icon-box icon-temp-avg"><i data-lucide="thermometer"></i></div></div>
+                <div class="kpi-value" id="kpiTempMedia">-- °C</div>
+                <div class="kpi-subtext" id="kpiTempMediaSub">Promedio del año</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Temp. Mínima Absoluta <div class="icon-box icon-temp-min"><i data-lucide="snowflake"></i></div></div>
+                <div class="kpi-value" id="kpiTempMin">-- °C</div>
+                <div class="kpi-subtext" id="kpiTempMinSub">Mínimo anual registrado</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Humedad Relativa Media <div class="icon-box icon-humidity"><i data-lucide="droplets"></i></div></div>
+                <div class="kpi-value" id="kpiHumedad">-- %</div>
+                <div class="kpi-subtext" id="kpiHumedadSub">Promedio anual</div>
+            </div>
+        </div>
+
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3><i data-lucide="bar-chart-3" class="icon-rain"></i> Precipitación Mensual (mm)</h3>
+                </div>
+                <div class="chart-container"><canvas id="precipChart"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-header">
+                    <h3><i data-lucide="trending-up" class="icon-temp-max"></i> Perfil Mensual de Temperaturas (°C)</h3>
+                </div>
+                <div class="chart-container"><canvas id="tempChart"></canvas></div>
+            </div>
+            <div class="chart-card full-width">
+                <div class="chart-header">
+                    <h3><i data-lucide="line-chart"></i> Evolución Histórica de Precipitación Anual</h3>
+                </div>
+                <div class="chart-container" style="height: 300px;"><canvas id="historicalPrecipChart"></canvas></div>
+            </div>
+            <div class="chart-card full-width">
+                <div class="chart-header">
+                    <h3><i data-lucide="table"></i> Detalle Mensual del Año Seleccionado</h3>
+                </div>
+                <div class="table-container">
+                    <table id="dataTable">
+                        <thead>
+                            <tr>
+                                <th>Variable / Mes</th>
+                                <th>ENE</th><th>FEB</th><th>MAR</th><th>ABR</th>
+                                <th>MAY</th><th>JUN</th><th>JUL</th><th>AGO</th>
+                                <th>SEP</th><th>OCT</th><th>NOV</th><th>DIC</th><th>TOTAL / PROM</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="lerma" class="tab-content">
+        <div class="info-card">
+            <h2><i data-lucide="mountain"></i> Caracterización Agrometeorológica del Valle de Lerma</h2>
+            <p>El <strong>Valle de Lerma</strong> se ubica en el centro de la Provincia de Salta, encuadrado geográficamente entre la Cordillera Oriental al oeste y las Sierras Subandinas al este. Posee una altitud promedio de <strong>1.200 a 1.300 m s.n.m.</strong></p>
+        </div>
+
+        <div class="info-card">
+            <h2><i data-lucide="sun"></i> Clima y Régimen Térmico</h2>
+            <ul>
+                <li><strong>Tipo de Clima:</strong> Subtropical serrano con estación seca marcada.</li>
+                <li><strong>Temperaturas Medias:</strong> Varían entre los 11°C en invierno y los 21°C en verano.</li>
+                <li><strong>Régimen de Heladas:</strong> El período libre de heladas se extiende habitualmente desde octubre hasta mayo, concentrándose el mayor riesgo entre junio y agosto.</li>
+            </ul>
+        </div>
+
+        <div class="info-card">
+            <h2><i data-lucide="cloud-rain"></i> Régimen Hídrico y Precipitaciones</h2>
+            <ul>
+                <li><strong>Monzón Subtropical:</strong> Cerca del 80% a 90% de las lluvias ocurren en el semestre estival (noviembre - marzo).</li>
+                <li><strong>Distribución:</strong> La precipitación media anual ronda los <strong>750 a 900 mm</strong>, dependiendo de la cercanía a los cordones montañosos (efecto orográfico).</li>
+                <li><strong>Déficit Hídrico:</strong> Marcado durante la primavera (septiembre a noviembre), lo que demanda riego suplementario en cultivos clave.</li>
+            </ul>
+        </div>
+
+        <div class="info-card">
+            <h2><i data-lucide="sprout"></i> Aptitud Productiva</h2>
+            <p>La combinación climática y de suelo posiciona al Valle de Lerma como un polo productivo diverso:</p>
+            <ul>
+                <li><strong>Tabaco:</strong> Cultivo insignia regional de alto valor socioeconómico.</li>
+                <li><strong>Horticultura y Fruticultura:</strong> Hortalizas de estación, durazno, e higo.</li>
+                <li><strong>Ganadería y Pasturas:</strong> Lácteos, alfalfa y maíz para silaje.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="historia" class="tab-content">
+        <div class="info-card">
+            <h2><i data-lucide="history"></i> Historia y Protagonistas de la Agrometeorología en INTA Cerrillos (EEA Salta)</h2>
+            <p>La recolección de datos agrometeorológicos en la <strong>Estación Experimental Agropecuaria (EEA) Salta del INTA (Cerrillos)</strong> cuenta con una continuidad histórica de más de medio siglo, la cual se consolidó a través de referentes clave en el tiempo:</p>
+
+            <div class="person-profile">
+                <img src="nieva.jpg" alt="Téc. Ignacio Nieva" class="person-img" onerror="this.src='https://via.placeholder.com/180x220?text=Ignacio+Nieva'">
+                <div class="person-info">
+                    <h4>1. El inicio del proceso: Téc. Ignacio Nieva</h4>
+                    <span class="role">Pionero y Responsable Agrometeorológico (1968 - 2011)</span>
+                    <p><strong>Rol e Historia:</strong> El profesional que inició e impulsó formalmente este proceso fue el Téc. Ignacio Nieva, el meteorólogo más reconocido de la provincia de Salta. Tras realizar un curso de observador meteorológico en Salta, ingresó a trabajar al INTA Cerrillos en octubre de 1968.</p>
+                    <p><strong>Especialización:</strong> En 1978 fue becado por el INTA para especializarse en la Universidad de Buenos Aires (UBA) como Técnico en Agrometeorología. Durante 43 años (hasta su jubilación en 2011) fue la cara visible y responsable del monitoreo agroclimático, sentando las bases del registro sistemático de datos diarios en la estación.</p>
+                </div>
+            </div>
+
+            <div class="person-profile">
+                <img src="Guanca_carlos.jpg" alt="Carlos Guanca" class="person-img" onerror="this.src='https://via.placeholder.com/180x220?text=Carlos+Guanca'">
+                <div class="person-info">
+                    <h4>2. La continuidad técnica y la digitalización: Carlos Guanca</h4>
+                    <span class="role">Observador Meteorológico de Superficie y Digitalizador</span>
+                    <p><strong>Trayectoria y Roles:</strong> Ingresó a trabajar en 1989 junto al Téc. Ignacio Nieva, asumiendo de forma directa las observaciones meteorológicas diurnas de superficie en los horarios sinópticos reglamentarios (09:00, 15:00 y 21:00 hs).</p>
+                    <p><strong>Procesamiento de Datos:</strong> Tras las lecturas diarias de campo, realizaba los cálculos psicrométricos y meteorológicos necesarios para la determinación de las variables derivadas (tensión de vapor, humedad, punto de rocío, medias térmicas, entre otras).</p>
+                    <p><strong>Aporte clave en Digitalización:</strong> Fue una figura central en la sistematización, carga e informatización de las planillas históricas en papel hacia formatos digitales. Su trabajo permitió preservar décadas de series agrometeorológicas de la provincia de Salta, insumo clave que sirvió como base para estudios regionales y proyectos de alcance nacional como el Atlas Climático Digital de la Argentina.</p>
+                </div>
+            </div>
+
+            <div class="person-profile">
+                <img src="Guanca_german.jpg" alt="Germán Guanca" class="person-img" onerror="this.src='https://via.placeholder.com/180x220?text=Germ%C3%A1n+Guanca'">
+                <div class="person-info">
+                    <h4>3. Modernización y red de estaciones: Germán Guanca</h4>
+                    <span class="role">Observador de Superficie y Especialista en EMAs (desde 2004)</span>
+                    <p><strong>El relevo operativo:</strong> Con el impulso de las nuevas tecnologías, Ignacio Nieva y Carlos Guanca comenzaron la instalación de las primeras Estaciones Meteorológicas Automáticas (EMAs) en el Valle de Lerma. Ante los frecuentes despliegues de campo de Carlos, su hijo Germán Guanca ingresó en 2004 para garantizar la continuidad de las observaciones convencionales y mediciones diarias.</p>
+                    <p><strong>Especialización y Mantenimiento:</strong> Germán se formó y certificó como Observador Meteorológico de Superficie. Con el tiempo, desarrolló un vasto conocimiento en estaciones meteorológicas automáticas de alta gama (como Davis Vantage Pro2, entre otras), especializándose en la captura de datos, diagnóstico, calibración y reparación técnica de los equipos.</p>
+                </div>
+            </div>
+
+            <div class="person-profile">
+                <img src="hernan.jpg" alt="Lic. Hernán Elena" class="person-img" onerror="this.src='https://via.placeholder.com/180x220?text=Hern%C3%A1n+Elena'">
+                <div class="person-info">
+                    <h4>3b. Integración SIG y Gestión de Información: Lic. Hernán Elena</h4>
+                    <span class="role">Licenciado en Informática / Especialista en SIG (desde 2004)</span>
+                    <p>A partir de 2004, aportó la visión de la Informática y los Sistemas de Información Geográfica (SIG). Su rol fue fundamental para coordinar junto a Germán la transición digital, procesar grandes volúmenes de datos e integrar las series climáticas a geoportales (como GEOINTA e IDESA), además de elaborar la cartografía agroclimática regional (mapas de precipitación, temperaturas y evapotranspiración).</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="creditos" class="tab-content">
+        <div class="info-card">
+            <h2><i data-lucide="building"></i> Instituto Nacional de Tecnología Agropecuaria (INTA)</h2>
+            <p><strong>Centro Regional Salta-Jujuy | Estación Experimental Agropecuaria Salta</strong></p>
+            <p>Fuente de Datos: Registro agroclimático diario de la Estación Agrometeorológica INTA Cerrillos.</p>
+            <p>Dirección: Ruta Nacional 68 Km 172, Cerrillos, Salta, Argentina.</p>
+            <p>Sitio Web Oficial: <a href="https://www.argentina.gob.ar/inta" target="_blank" style="color: var(--accent-primary);">https://www.argentina.gob.ar/inta</a></p>
+        </div>
+
+        <div class="info-card">
+            <h2><i data-lucide="database"></i> Base de Datos Histórica (Registro, Observación y Digitalización)</h2>
+            <div class="credits-grid">
+                <div class="credit-card">
+                    <img src="nieva.jpg" alt="Ignacio Nieva" onerror="this.src='https://via.placeholder.com/65'">
+                    <div>
+                        <h5>Ignacio Nieva</h5>
+                        <p>Registro histórico e impulso original de la estación agrometeorológica.</p>
+                    </div>
+                </div>
+                <div class="credit-card">
+                    <img src="Guanca_carlos.jpg" alt="Carlos Guanca" onerror="this.src='https://via.placeholder.com/65'">
+                    <div>
+                        <h5>Carlos Guanca</h5>
+                        <p>Observaciones de superficie, cálculos meteorológicos y digitalización de planillas históricas.</p>
+                    </div>
+                </div>
+                <div class="credit-card">
+                    <img src="Guanca_german.jpg" alt="Germán Guanca" onerror="this.src='https://via.placeholder.com/65'">
+                    <div>
+                        <h5>Germán Guanca</h5>
+                        <p>Observación meteorológica de superficie, mantenimiento técnico y gestión de la red de EMAs.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-card">
+            <h2><i data-lucide="laptop"></i> Procesamiento de Datos y Aplicación Web</h2>
+            <div class="credits-grid">
+                <div class="credit-card">
+                    <img src="hernan.jpg" alt="Hernán Elena" onerror="this.src='https://via.placeholder.com/65'">
+                    <div>
+                        <h5>Lic. Hernán Elena</h5>
+                        <p>Procesamiento, estructuración de datos de la serie histórica y desarrollo de la aplicación web interactiva.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const MONTHS = ["ENE", "FEB", "MAR", "ABR", "MAY", "JUN", "JUL", "AGO", "SEP", "OCT", "NOV", "DIC"];
+        let rawJsonData = [];
+        let precipChart, tempChart, historicalPrecipChart;
+
+        async function initApp() {
+            lucide.createIcons();
+            
+            try {
+                // Cargar datos desde el archivo JSON externo
+                const response = await fetch('datos_historicos_cerrillos.json');
+                rawJsonData = await response.json();
+                
+                // Ordenar por año por seguridad
+                rawJsonData.sort((a, b) => a.anio - b.anio);
+
+                populateSelects();
+                initHistoricalChart();
+                updateDashboard();
+            } catch (error) {
+                console.error("Error al cargar el archivo JSON:", error);
+                alert("No se pudieron cargar los datos agrometeorológicos. Asegúrate de que 'datos_historicos_cerrillos.json' está en el mismo directorio.");
+            }
+        }
+
+        function populateSelects() {
+            const yearSelect = document.getElementById('yearSelect');
+            const compareSelect = document.getElementById('compareSelect');
+
+            yearSelect.innerHTML = '';
+            compareSelect.innerHTML = '<option value="none">Ninguno (Promedio Histórico)</option>';
+
+            rawJsonData.forEach(item => {
+                const opt1 = document.createElement('option');
+                opt1.value = item.anio;
+                opt1.textContent = item.anio;
+                yearSelect.appendChild(opt1);
+
+                const opt2 = document.createElement('option');
+                opt2.value = item.anio;
+                opt2.textContent = item.anio;
+                compareSelect.appendChild(opt2);
+            });
+
+            // Seleccionar el último año disponible por defecto
+            if (rawJsonData.length > 0) {
+                yearSelect.value = rawJsonData[rawJsonData.length - 1].anio;
+            }
+            compareSelect.value = "none";
+        }
+
+        function switchTab(tabId, event) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+            if (newTheme === 'dark') {
+                icon.setAttribute('data-lucide', 'sun');
+                text.textContent = 'Modo Claro';
+            } else {
+                icon.setAttribute('data-lucide', 'moon');
+                text.textContent = 'Modo Oscuro';
+            }
+            lucide.createIcons();
+            updateDashboard();
+        }
+
+        function getYearRecord(year) {
+            return rawJsonData.find(item => item.anio === parseInt(year)) || null;
+        }
+
+        function getYearData(metric, year) {
+            const record = getYearRecord(year);
+            if (!record) return Array(12).fill(0);
+            
+            // Mapeo entre las llaves del JSON y la métrica
+            const keyMap = {
+                'precip': 'precipitacion',
+                'temp_max': 'temp_max',
+                'temp_media': 'temp_media',
+                'temp_min': 'temp_min',
+                'humedad': 'humedad'
+            };
+            return record[keyMap[metric]] || Array(12).fill(0);
+        }
+
+        function getHistoricalAvg(metric) {
+            const sums = Array(12).fill(0);
+            const counts = Array(12).fill(0);
+
+            rawJsonData.forEach(item => {
+                const values = getYearData(metric, item.anio);
+                values.forEach((v, i) => {
+                    if (v !== null && !isNaN(v)) {
+                        sums[i] += v;
+                        counts[i]++;
+                    }
+                });
+            });
+
+            return sums.map((sum, i) => counts[i] > 0 ? Number((sum / counts[i]).toFixed(1)) : 0);
+        }
+
+        function updateDashboard() {
+            const selectedYear = document.getElementById('yearSelect').value;
+            const compareYear = document.getElementById('compareSelect').value;
+
+            const pSelected = getYearData('precip', selectedYear);
+            const tMaxSelected = getYearData('temp_max', selectedYear);
+            const tMedSelected = getYearData('temp_media', selectedYear);
+            const tMinSelected = getYearData('temp_min', selectedYear);
+            const hSelected = getYearData('humedad', selectedYear);
+
+            const pAvg = getHistoricalAvg('precip');
+
+            // Actualizar KPIs
+            const totalP = pSelected.reduce((a, b) => a + (b || 0), 0);
+            const avgP = pAvg.reduce((a, b) => a + b, 0);
+            const diffP = (totalP - avgP).toFixed(1);
+
+            document.getElementById('kpiPrecip').textContent = `${totalP.toFixed(1)} mm`;
+            document.getElementById('kpiPrecipSub').textContent = `${diffP >= 0 ? '+' : ''}${diffP} mm vs prom. histórico (${avgP.toFixed(1)} mm)`;
+
+            const validTMax = tMaxSelected.filter(v => v !== null && !isNaN(v));
+            const maxT = validTMax.length > 0 ? Math.max(...validTMax) : '--';
+            document.getElementById('kpiTempMax').textContent = `${maxT} °C`;
+
+            const validTMed = tMedSelected.filter(v => v !== null && !isNaN(v));
+            const avgT = validTMed.length > 0 ? (validTMed.reduce((a, b) => a + b, 0) / validTMed.length).toFixed(1) : '--';
+            document.getElementById('kpiTempMedia').textContent = `${avgT} °C`;
+
+            const validTMin = tMinSelected.filter(v => v !== null && !isNaN(v));
+            const minT = validTMin.length > 0 ? Math.min(...validTMin) : '--';
+            document.getElementById('kpiTempMin').textContent = `${minT} °C`;
+
+            const validH = hSelected.filter(v => v !== null && !isNaN(v));
+            const avgH = validH.length > 0 ? (validH.reduce((a, b) => a + b, 0) / validH.length).toFixed(1) : '--';
+            document.getElementById('kpiHumedad').textContent = `${avgH} %`;
+
+            // Actualizar Gráficos
+            renderPrecipChart(selectedYear, compareYear, pSelected, pAvg);
+            renderTempChart(selectedYear, compareYear, tMaxSelected, tMedSelected, tMinSelected);
+
+            // Actualizar Tabla
+            renderTable(pSelected, tMaxSelected, tMedSelected, tMinSelected, hSelected);
+        }
+
+        function renderPrecipChart(year, compareYear, pSelected, pAvg) {
+            const ctx = document.getElementById('precipChart').getContext('2d');
+            if (precipChart) precipChart.destroy();
+
+            const datasets = [{
+                label: `Año ${year}`,
+                data: pSelected,
+                backgroundColor: '#10b981',
+                borderRadius: 4
+            }];
+
+            if (compareYear === "none") {
+                datasets.push({
+                    label: 'Promedio Histórico',
+                    data: pAvg,
+                    type: 'line',
+                    borderColor: '#6366f1',
+                    borderWidth: 2,
+                    fill: false,
+                    pointRadius: 3
+                });
+            } else {
+                datasets.push({
+                    label: `Año ${compareYear}`,
+                    data: getYearData('precip', compareYear),
+                    backgroundColor: '#f59e0b',
+                    borderRadius: 4
+                });
+            }
+
+            precipChart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: MONTHS, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } }
+                }
+            });
+        }
+
+        function renderTempChart(year, compareYear, tMax, tMed, tMin) {
+            const ctx = document.getElementById('tempChart').getContext('2d');
+            if (tempChart) tempChart.destroy();
+
+            const datasets = [
+                { label: 'Temp. Máxima', data: tMax, borderColor: '#ef4444', backgroundColor: '#ef4444', borderWidth: 2, fill: false },
+                { label: 'Temp. Media', data: tMed, borderColor: '#f59e0b', backgroundColor: '#f59e0b', borderWidth: 2, fill: false },
+                { label: 'Temp. Mínima', data: tMin, borderColor: '#3b82f6', backgroundColor: '#3b82f6', borderWidth: 2, fill: false }
+            ];
+
+            if (compareYear !== "none") {
+                datasets.push({
+                    label: `Media (${compareYear})`,
+                    data: getYearData('temp_media', compareYear),
+                    borderColor: '#8b5cf6',
+                    borderDash: [5, 5],
+                    borderWidth: 2,
+                    fill: false
+                });
+            }
+
+            tempChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: MONTHS, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } }
+                }
+            });
+        }
+
+        function initHistoricalChart() {
+            const ctx = document.getElementById('historicalPrecipChart').getContext('2d');
+            if (historicalPrecipChart) historicalPrecipChart.destroy();
+
+            const years = rawJsonData.map(item => item.anio);
+            const totals = rawJsonData.map(item => {
+                const vals = item.precipitacion || [];
+                return Number(vals.reduce((a, b) => a + (b || 0), 0).toFixed(1));
+            });
+
+            historicalPrecipChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [{
+                        label: 'Precipitación Anual Acumulada (mm)',
+                        data: totals,
+                        borderColor: '#00529c',
+                        backgroundColor: 'rgba(0, 82, 156, 0.1)',
+                        fill: true,
+                        tension: 0.2,
+                        pointRadius: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } }
+                }
+            });
+        }
+
+        function renderTable(p, tMax, tMed, tMin, h) {
+            const tbody = document.querySelector('#dataTable tbody');
+            tbody.innerHTML = '';
+
+            const calcTotal = arr => arr.reduce((a, b) => a + (b || 0), 0).toFixed(1);
+            const calcAvg = arr => {
+                const valid = arr.filter(v => v !== null && !isNaN(v));
+                return valid.length > 0 ? (valid.reduce((a, b) => a + b, 0) / valid.length).toFixed(1) : '--';
+            };
+            const calcMax = arr => {
+                const valid = arr.filter(v => v !== null && !isNaN(v));
+                return valid.length > 0 ? Math.max(...valid).toFixed(1) : '--';
+            };
+            const calcMin = arr => {
+                const valid = arr.filter(v => v !== null && !isNaN(v));
+                return valid.length > 0 ? Math.min(...valid).toFixed(1) : '--';
+            };
+
+            const rows = [
+                { name: 'Precipitación (mm)', vals: p, stat: calcTotal(p) },
+                { name: 'Temp. Máxima Abs. (°C)', vals: tMax, stat: calcMax(tMax) },
+                { name: 'Temp. Media (°C)', vals: tMed, stat: calcAvg(tMed) },
+                { name: 'Temp. Mínima Abs. (°C)', vals: tMin, stat: calcMin(tMin) },
+                { name: 'Humedad Relativa (%)', vals: h, stat: calcAvg(h) }
+            ];
+
+            rows.forEach(r => {
+                const tr = document.createElement('tr');
+                let html = `<td><strong>${r.name}</strong></td>`;
+                r.vals.forEach(v => {
+                    html += `<td>${v !== null && v !== undefined ? v : '--'}</td>`;
+                });
+                html += `<td><strong>${r.stat}</strong></td>`;
+                tr.innerHTML = html;
+                tbody.appendChild(tr);
+            });
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
