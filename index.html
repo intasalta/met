@@ -831,7 +831,7 @@
             document.getElementById('kpiTempMin').textContent = `${minT} °C`;
 
             const validH = hSelected.filter(v => v !== null && !isNaN(v));
-            const avgH = validH.length > 0 ? (validH.reduce((a, b) => a + b, 0) / validH.length).toFixed(1) : '--';
+            const avgH = validH.length > 0 ? Math.round(validH.reduce((a, b) => a + b, 0) / validH.length) : '--';
             document.getElementById('kpiHumedad').textContent = `${avgH} %`;
 
             // Actualizar Gráficos
@@ -970,7 +970,7 @@
                 { name: 'Temp. Máxima Abs. (°C)', vals: tMax, stat: calcMax(tMax) },
                 { name: 'Temp. Media (°C)', vals: tMed, stat: calcAvg(tMed) },
                 { name: 'Temp. Mínima Abs. (°C)', vals: tMin, stat: calcMin(tMin) },
-                { name: 'Humedad Relativa (%)', vals: h, stat: calcAvg(h) }
+                { name: 'Humedad Relativa (%)', vals: h, stat: Math.round(calcAvg(h)) }
             ];
 
             rows.forEach(r => {
