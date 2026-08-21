@@ -1184,75 +1184,49 @@
     </script>
 	<!-- Plantilla oculta para generación de PDF -->
 <!-- Plantilla oculta para generación de PDF -->
-<div id="pdfExportTemplate" style="display: none; padding: 20px; background: #ffffff; color: #000000; font-family: 'Plus Jakarta Sans', sans-serif;">
-    
-    <!-- PÁGINA 1: Encabezado, KPIs y Gráficos Mensuales -->
-    <div class="pdf-page-1">
-        <!-- Encabezado Institucional INTA -->
-        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00529c; padding-bottom: 12px; margin-bottom: 15px;">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <img src="Logo_INTA.png" alt="Logo INTA" style="height: 45px; width: auto;" onerror="this.style.display='none'">
-                <div>
-                    <h2 style="font-size: 16px; font-weight: 700; color: #00529c; margin: 0;">Reporte Agrometeorológico Oficial</h2>
-                    <p style="font-size: 11px; color: #475569; margin: 2px 0 0 0;">INTA EEA Salta | Estación Agrometeorológica Cerrillos</p>
-                </div>
-            </div>
-            <div style="text-align: right; font-size: 10px; color: #475569;">
-                <strong>AÑO SELECCIONADO: <span id="pdfYearText"></span></strong><br>
-                Ruta Nacional 68 Km 172, Cerrillos, Salta<br>
-                Generado el <span id="pdfDateText"></span>
-            </div>
-        </div>
-
-        <h3 style="font-size: 13px; text-transform: uppercase; color: #00529c; margin-bottom: 10px; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px;">Resumen Agroclimático y Gráficos Mensuales</h3>
-        
-        <!-- Contenedor donde JS clona las tarjetas de KPI -->
-        <div id="pdfKpiClone" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 15px;"></div>
-        
-        <!-- Gráficos Mensuales -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
-            <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; text-align: center;">
-                <h4 style="font-size: 11px; margin-bottom: 6px; color: #334155;">Precipitación Mensual (mm)</h4>
-                <img id="pdfPrecipImg" style="width: 100%; height: auto; display: block;">
-            </div>
-            <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; text-align: center;">
-                <h4 style="font-size: 11px; margin-bottom: 6px; color: #334155;">Perfil Mensual de Temperaturas (°C)</h4>
-                <img id="pdfTempImg" style="width: 100%; height: auto; display: block;">
-            </div>
-        </div>
-    </div>
-
-    <!-- PÁGINA 2: Encabezado Secundario, Gráfico Histórico y Tabla de Datos -->
-    <div class="pdf-page-2" style="page-break-before: always; padding-top: 10px;">
-        
-        <div style="margin-bottom: 15px; border-bottom: 2px solid #00529c; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+<!-- Plantilla de 1 SOLA HOJA A4 para PDF -->
+<div id="pdfExportTemplate" style="display: none;">
+    <!-- Encabezado Institucional INTA -->
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00529c; padding-bottom: 6px; margin-bottom: 8px;">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <img src="Logo_INTA.png" alt="Logo INTA" style="height: 35px; width: auto;" onerror="this.style.display='none'">
             <div>
-                <h3 style="margin: 0; font-size: 15px; color: #00529c;">INTA Reporte Agrometeorológico Oficial (Continuación)</h3>
-                <p style="margin: 0; font-size: 11px; color: #64748b;">INTA EEA Salta - Estación Cerrillos</p>
+                <h2 style="font-size: 14px; font-weight: 700; color: #00529c; margin: 0;">Reporte Agrometeorológico Oficial</h2>
+                <p style="font-size: 10px; color: #475569; margin: 0;">INTA EEA Salta | Estación Agrometeorológica Cerrillos</p>
             </div>
         </div>
-
-        <!-- A. Contenedor del Gráfico Histórico -->
-        <div style="page-break-inside: avoid; margin-bottom: 20px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px;">
-            <h4 style="font-size: 12px; text-transform: uppercase; margin-bottom: 8px; color: #334155;">
-                Evolución Histórica de Precipitación Anual
-            </h4>
-            <div id="pdf-historico-container" style="width: 100%; text-align: center;"></div>
+        <div style="text-align: right; font-size: 9px; color: #475569;">
+            <strong>AÑO: <span id="pdfYearText"></span></strong> | Generado el <span id="pdfDateText"></span><br>
+            Ruta Nacional 68 Km 172, Cerrillos, Salta
         </div>
-
-        <!-- B. Contenedor de la Tabla de Datos Mensuales -->
-        <div style="page-break-inside: avoid;">
-            <h4 style="font-size: 12px; text-transform: uppercase; margin-bottom: 8px; color: #334155;">
-                Detalle Mensual de Variables
-            </h4>
-            
-            <table id="pdf-tabla-datos" style="width: 100%; border-collapse: collapse; font-size: 10px; text-align: right;">
-                <!-- El contenido se clona automáticamente vía JS -->
-            </table>
-        </div>
-
     </div>
 
+    <!-- Contenedor dinámico de KPIs -->
+    <div id="pdfKpiClone"></div>
+    
+    <!-- Gráficos Mensuales (Precipitación y Temperatura) -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
+        <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px; text-align: center;">
+            <h4 style="font-size: 9px; margin-bottom: 2px; color: #334155;">Precipitación Mensual (mm)</h4>
+            <img id="pdfPrecipImg" style="width: 100%; display: block;">
+        </div>
+        <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px; text-align: center;">
+            <h4 style="font-size: 9px; margin-bottom: 2px; color: #334155;">Perfil Mensual de Temperaturas (°C)</h4>
+            <img id="pdfTempImg" style="width: 100%; display: block;">
+        </div>
+    </div>
+
+    <!-- Gráfico Histórico -->
+    <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 4px; margin-bottom: 6px; text-align: center;">
+        <h4 style="font-size: 9px; margin-bottom: 2px; color: #334155; text-transform: uppercase;">Evolución Histórica de Precipitación Anual</h4>
+        <div id="pdf-historico-container" style="width: 100%;"></div>
+    </div>
+
+    <!-- Tabla de Datos Mensuales -->
+    <div>
+        <h4 style="font-size: 9px; margin-bottom: 3px; color: #334155; text-transform: uppercase;">Detalle Mensual de Variables</h4>
+        <table id="pdf-tabla-datos"></table>
+    </div>
 </div>
 </body>
 </html>
