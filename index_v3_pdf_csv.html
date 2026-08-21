@@ -1113,8 +1113,6 @@
 			link.click();
 			document.body.removeChild(link);
 		}
-		
-		// Exportar la vista activa a PDF
 		async function downloadPDF() {
 			const selectedYear = document.getElementById('yearSelect').value;
 			const template = document.getElementById('pdfExportTemplate');
@@ -1138,37 +1136,56 @@
 				pdfTable.innerHTML = mainTable.innerHTML;
 			}
 
-			// 3. Convertir Canvas a Imagen
+			// Helper para cargar imágenes de forma asíncrona garantizada
+			const loadImage = (imgElem, src) => {
+				return new Promise((resolve) => {
+					imgElem.onload = () => resolve();
+					imgElem.onerror = () => resolve(); // Previene bloqueos si falla
+					imgElem.src = src;
+				});
+			};
+
+			// 3. Convertir Canvas a Imagen y esperar la carga completa
 			const precipCanvas = document.getElementById('precipChart');
 			const tempCanvas = document.getElementById('tempChart');
 			const historicoCanvas = document.getElementById('historicalPrecipChart');
 
+			const imagePromises = [];
+
 			if (precipCanvas) {
-				document.getElementById('pdfPrecipImg').src = precipCanvas.toDataURL('image/png', 1.0);
+				const img = document.getElementById('pdfPrecipImg');
+				imagePromises.push(loadImage(img, precipCanvas.toDataURL('image/png', 1.0)));
 			}
 			if (tempCanvas) {
-				document.getElementById('pdfTempImg').src = tempCanvas.toDataURL('image/png', 1.0);
+				const img = document.getElementById('pdfTempImg');
+				imagePromises.push(loadImage(img, tempCanvas.toDataURL('image/png', 1.0)));
 			}
 			if (historicoCanvas) {
 				const historicoContainer = document.getElementById('pdf-historico-container');
 				historicoContainer.innerHTML = '';
 				const img = document.createElement('img');
-				img.src = historicoCanvas.toDataURL('image/png', 1.0);
 				historicoContainer.appendChild(img);
+				imagePromises.push(loadImage(img, historicoCanvas.toDataURL('image/png', 1.0)));
 			}
 
-			// 4. Configurar html2pdf con corte estricto por CSS
+			// Esperar a que todas las imágenes en Base64 se procesen
+			await Promise.all(imagePromises);
+
+			// 4. Hacer visible la plantilla
+			template.style.display = 'block';
+
+			// 5. Forzar un pequeño retardo para permitir el repaint del DOM
+			await new Promise(resolve => setTimeout(resolve, 250));
+
+			// 6. Configurar y generar html2pdf
 			const opt = {
-				margin:       [5, 5, 5, 5], // Márgenes pequeños en mm
+				margin:       [5, 5, 5, 5],
 				filename:     `Reporte_INTA_Cerrillos_${selectedYear}.pdf`,
 				image:        { type: 'jpeg', quality: 0.98 },
 				html2canvas:  { scale: 2, useCORS: true, logging: false },
 				jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-				pagebreak:    { mode: 'css' } // Forzar respeto a page-break-before: always sin divisiones automáticas
+				pagebreak:    { mode: 'css' }
 			};
-
-			// 5. Renderizar
-			template.style.display = 'block';
 
 			try {
 				await html2pdf().set(opt).from(template).save();
@@ -1178,6 +1195,8 @@
 				template.style.display = 'none';
 			}
 		}
+		// Exportar la vista activa a PDF
+		
         window.onload = initApp;
     </script>
 	<!-- Plantilla oculta para generación de PDF -->
