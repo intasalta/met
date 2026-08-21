@@ -10,7 +10,9 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
+    <!-- html2pdf Library -->
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+	<style>
         :root {
             --bg-primary: #f8fafc;
             --bg-card: #ffffff;
@@ -430,6 +432,88 @@
             color: var(--text-muted);
             margin: 0;
         }
+		/* Estilos para el renderizado correcto de la tabla en el PDF */
+		#pdf-tabla-datos th, #pdf-tabla-datos td {
+			border: 1px solid #cbd5e1;
+			padding: 5px 6px;
+			font-size: 9px;
+			color: #000000;
+		}
+		#pdf-tabla-datos th {
+			background-color: #f1f5f9;
+			font-weight: 700;
+		}
+		
+		/* Estilos específicos y forzados para exportación PDF en A4 */
+		#pdfExportTemplate {
+			width: 190mm;
+			box-sizing: border-box;
+			background: #ffffff !important;
+			color: #000000 !important;
+			padding: 0 !important;
+		}
+
+		/* Permitir flujo continuo sin salto de página */
+		.pdf-page-1, .pdf-page-2 {
+			height: auto !important;
+			max-height: none !important;
+			overflow: visible !important;
+			page-break-before: avoid !important;
+			padding: 0 !important;
+		}
+
+		/* Control de altura de imágenes para comprimir verticalmente */
+		#pdfPrecipImg, #pdfTempImg {
+			max-height: 125px !important;
+			width: 100% !important;
+			object-fit: contain !important;
+		}
+
+		#pdf-historico-container img {
+			max-height: 100px !important;
+			width: 100% !important;
+			object-fit: contain !important;
+		}
+
+		/* Compactar la tabla de datos */
+		#pdf-tabla-datos th, #pdf-tabla-datos td {
+			border: 1px solid #cbd5e1;
+			padding: 3px 4px !important;
+			font-size: 8px !important;
+			color: #000000;
+		}
+		
+		
+
+		/* Ajuste de tarjetas KPI dentro del PDF para evitar desbordamiento */
+		#pdfKpiClone {
+			display: flex !important;
+			flex-direction: row !important;
+			justify-content: space-between !important;
+			gap: 4px !important;
+		}
+
+		#pdfKpiClone .kpi-card {
+			flex: 1 !important;
+			padding: 6px 8px !important;
+			border: 1px solid #cbd5e1 !important;
+			border-radius: 6px !important;
+		}
+
+		#pdfKpiClone .kpi-title {
+			font-size: 8px !important;
+		}
+
+		#pdfKpiClone .kpi-value {
+			font-size: 14px !important;
+			margin: 4px 0 !important;
+		}
+
+		#pdfKpiClone .kpi-subtext {
+			font-size: 8px !important;
+		}
+		
+		
     </style>
 </head>
 <body>
@@ -483,6 +567,14 @@
                     <option value="none">Ninguno (Promedio Histórico)</option>
                 </select>
             </div>
+			<div class="filter-group" style="margin-left: auto;">
+				<button onclick="downloadCSV()" style="padding: 8px 14px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-main); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+					<i data-lucide="download"></i> Exportar CSV
+				</button>
+				<button onclick="downloadPDF()" style="padding: 8px 14px; border-radius: 6px; border: 1px solid var(--border); background: var(--accent-primary); color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+					<i data-lucide="file-text"></i> Exportar PDF
+				</button>
+			</div>
         </div>
 
         <div class="kpi-grid">
@@ -990,8 +1082,189 @@
                 tbody.appendChild(tr);
             });
         }
+		// Exportar la tabla del año seleccionado a CSV
+		// Exportar la tabla del año seleccionado a CSV
+		function downloadCSV() {
+			const selectedYear = document.getElementById('yearSelect').value;
+			const table = document.getElementById('dataTable');
+			if (!table) return;
 
+			let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // \uFEFF incluye el BOM para UTF-8 (acentos y caracteres especiales)
+
+			// Obtener filas de la tabla
+			const rows = table.querySelectorAll('tr');
+			rows.forEach(row => {
+				const cols = row.querySelectorAll('th, td');
+				const rowData = [];
+				cols.forEach(col => {
+					// Limpiar saltos de línea e incrustar comillas si es necesario
+					let text = col.innerText.replace(/(\r\n|\n|\r)/gm, '').trim();
+					rowData.push(`"${text}"`);
+				});
+				csvContent += rowData.join(",") + "\r\n";
+			});
+
+			// Crear enlace de descarga y disparar clic
+			const encodedUri = encodeURI(csvContent);
+			const link = document.createElement('a');
+			link.setAttribute('href', encodedUri);
+			link.setAttribute('download', `INTA_Cerrillos_Datos_${selectedYear}.csv`);
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+		}
+		async function downloadPDF() {
+			const selectedYear = document.getElementById('yearSelect').value;
+			const template = document.getElementById('pdfExportTemplate');
+
+			// 1. Asignar metadatos
+			const pdfYearElem = document.getElementById('pdfYearText');
+			const pdfDateElem = document.getElementById('pdfDateText');
+			if (pdfYearElem) pdfYearElem.innerText = selectedYear;
+			if (pdfDateElem) pdfDateElem.innerText = new Date().toLocaleDateString('es-AR');
+
+			// 2. Clonar KPIs y Tabla de datos
+			const mainKpiGrid = document.querySelector('.kpi-grid');
+			const pdfKpiContainer = document.getElementById('pdfKpiClone');
+			if (mainKpiGrid && pdfKpiContainer) {
+				pdfKpiContainer.innerHTML = mainKpiGrid.innerHTML;
+			}
+
+			const mainTable = document.getElementById('dataTable');
+			const pdfTable = document.getElementById('pdf-tabla-datos');
+			if (mainTable && pdfTable) {
+				pdfTable.innerHTML = mainTable.innerHTML;
+			}
+
+			// Helper para cargar imágenes de forma asíncrona garantizada
+			const loadImage = (imgElem, src) => {
+				return new Promise((resolve) => {
+					imgElem.onload = () => resolve();
+					imgElem.onerror = () => resolve(); // Previene bloqueos si falla
+					imgElem.src = src;
+				});
+			};
+
+			// 3. Convertir Canvas a Imagen y esperar la carga completa
+			const precipCanvas = document.getElementById('precipChart');
+			const tempCanvas = document.getElementById('tempChart');
+			const historicoCanvas = document.getElementById('historicalPrecipChart');
+
+			const imagePromises = [];
+
+			if (precipCanvas) {
+				const img = document.getElementById('pdfPrecipImg');
+				imagePromises.push(loadImage(img, precipCanvas.toDataURL('image/png', 1.0)));
+			}
+			if (tempCanvas) {
+				const img = document.getElementById('pdfTempImg');
+				imagePromises.push(loadImage(img, tempCanvas.toDataURL('image/png', 1.0)));
+			}
+			if (historicoCanvas) {
+				const historicoContainer = document.getElementById('pdf-historico-container');
+				historicoContainer.innerHTML = '';
+				const img = document.createElement('img');
+				historicoContainer.appendChild(img);
+				imagePromises.push(loadImage(img, historicoCanvas.toDataURL('image/png', 1.0)));
+			}
+
+			// Esperar a que todas las imágenes en Base64 se procesen
+			await Promise.all(imagePromises);
+
+			// 4. Hacer visible la plantilla
+			template.style.display = 'block';
+
+			// 5. Forzar un pequeño retardo para permitir el repaint del DOM
+			await new Promise(resolve => setTimeout(resolve, 250));
+
+			// 6. Configurar y generar html2pdf
+			const opt = {
+				margin:       [5, 5, 5, 5],
+				filename:     `Reporte_INTA_Cerrillos_${selectedYear}.pdf`,
+				image:        { type: 'jpeg', quality: 0.98 },
+				html2canvas:  { scale: 2, useCORS: true, logging: false },
+				jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+				pagebreak:    { mode: 'css' }
+			};
+
+			try {
+				await html2pdf().set(opt).from(template).save();
+			} catch (error) {
+				console.error("Error al generar el PDF:", error);
+			} finally {
+				template.style.display = 'none';
+			}
+		}
+		// Exportar la vista activa a PDF
+		
         window.onload = initApp;
     </script>
+	<!-- Plantilla oculta para generación de PDF -->
+<!-- Plantilla oculta para generación de PDF -->
+<div id="pdfExportTemplate" style="display: none; padding: 20px; background: #ffffff; color: #000000; font-family: 'Plus Jakarta Sans', sans-serif;">
+    
+    <!-- PÁGINA 1: Encabezado, KPIs y Gráficos Mensuales -->
+    <div class="pdf-page-1">
+        <!-- Encabezado Institucional INTA -->
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #00529c; padding-bottom: 12px; margin-bottom: 15px;">
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <img src="Logo_INTA.png" alt="Logo INTA" style="height: 45px; width: auto;" onerror="this.style.display='none'">
+                <div>
+                    <h2 style="font-size: 16px; font-weight: 700; color: #00529c; margin: 0;">Reporte Agrometeorológico</h2>
+                    <p style="font-size: 11px; color: #475569; margin: 2px 0 0 0;">INTA EEA Salta | Estación Agrometeorológica Cerrillos</p>
+                </div>
+            </div>
+            <div style="text-align: right; font-size: 10px; color: #475569;">
+                <strong>AÑO SELECCIONADO: <span id="pdfYearText"></span></strong><br>
+                Ruta Nacional 68 Km 172, Cerrillos, Salta<br>
+                Generado el <span id="pdfDateText"></span>
+            </div>
+        </div>
+
+        <h3 style="font-size: 13px; text-transform: uppercase; color: #00529c; margin-bottom: 10px; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px;">Resumen Agroclimático y Gráficos Mensuales</h3>
+        
+        <!-- Contenedor donde JS clona las tarjetas de KPI -->
+        <div id="pdfKpiClone" style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 15px;"></div>
+        
+        <!-- Gráficos Mensuales -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; text-align: center;">
+                <h4 style="font-size: 11px; margin-bottom: 6px; color: #334155;">Precipitación Mensual (mm)</h4>
+                <img id="pdfPrecipImg" style="width: 100%; height: auto; display: block;">
+            </div>
+            <div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; text-align: center;">
+                <h4 style="font-size: 11px; margin-bottom: 6px; color: #334155;">Perfil Mensual de Temperaturas (°C)</h4>
+                <img id="pdfTempImg" style="width: 100%; height: auto; display: block;">
+            </div>
+        </div>
+    </div>
+
+    <!-- PÁGINA 2: Encabezado Secundario, Gráfico Histórico y Tabla de Datos -->
+    <div class="pdf-page-2" style="page-break-before: always; padding-top: 10px;">
+        
+        
+
+        <!-- A. Contenedor del Gráfico Histórico -->
+        <div style="page-break-inside: avoid; margin-bottom: 20px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px;">
+            <h4 style="font-size: 12px; text-transform: uppercase; margin-bottom: 8px; color: #334155;">
+                Evolución Histórica de Precipitación Anual
+            </h4>
+            <div id="pdf-historico-container" style="width: 100%; text-align: center;"></div>
+        </div>
+
+        <!-- B. Contenedor de la Tabla de Datos Mensuales -->
+        <div style="page-break-inside: avoid;">
+            <h4 style="font-size: 12px; text-transform: uppercase; margin-bottom: 8px; color: #334155;">
+                Detalle Mensual de Variables
+            </h4>
+            
+            <table id="pdf-tabla-datos" style="width: 100%; border-collapse: collapse; font-size: 10px; text-align: right;">
+                <!-- El contenido se clona automáticamente vía JS -->
+            </table>
+        </div>
+
+    </div>
+
+</div>
 </body>
 </html>
