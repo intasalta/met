@@ -446,39 +446,44 @@
 		
 		/* Estilos específicos y forzados para exportación PDF en A4 */
 		#pdfExportTemplate {
-			width: 190mm; /* Ancho real útil de A4 restando márgenes */
+			width: 190mm;
 			box-sizing: border-box;
 			background: #ffffff !important;
 			color: #000000 !important;
+			padding: 0 !important;
 		}
 
-		.pdf-page-1 {
-			height: 270mm; /* Limita la altura total de la página 1 para evitar saltos no deseados */
-			max-height: 270mm;
-			overflow: hidden;
-			box-sizing: border-box;
+		/* Permitir flujo continuo sin salto de página */
+		.pdf-page-1, .pdf-page-2 {
+			height: auto !important;
+			max-height: none !important;
+			overflow: visible !important;
+			page-break-before: avoid !important;
+			padding: 0 !important;
 		}
 
-		.pdf-page-2 {
-			height: 270mm;
-			max-height: 270mm;
-			overflow: hidden;
-			box-sizing: border-box;
-			page-break-before: always;
-		}
-
-		/* Control estricto de altura de imágenes para evitar saltos */
+		/* Control de altura de imágenes para comprimir verticalmente */
 		#pdfPrecipImg, #pdfTempImg {
-			max-height: 140px !important;
+			max-height: 125px !important;
 			width: 100% !important;
 			object-fit: contain !important;
 		}
 
 		#pdf-historico-container img {
-			max-height: 120px !important;
+			max-height: 100px !important;
 			width: 100% !important;
 			object-fit: contain !important;
 		}
+
+		/* Compactar la tabla de datos */
+		#pdf-tabla-datos th, #pdf-tabla-datos td {
+			border: 1px solid #cbd5e1;
+			padding: 3px 4px !important;
+			font-size: 8px !important;
+			color: #000000;
+		}
+		
+		
 
 		/* Ajuste de tarjetas KPI dentro del PDF para evitar desbordamiento */
 		#pdfKpiClone {
@@ -1218,12 +1223,7 @@
     <!-- PÁGINA 2: Encabezado Secundario, Gráfico Histórico y Tabla de Datos -->
     <div class="pdf-page-2" style="page-break-before: always; padding-top: 10px;">
         
-        <div style="margin-bottom: 15px; border-bottom: 2px solid #00529c; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-            <div>
-                <h3 style="margin: 0; font-size: 15px; color: #00529c;">INTA Reporte Agrometeorológico Oficial (Continuación)</h3>
-                <p style="margin: 0; font-size: 11px; color: #64748b;">INTA EEA Salta - Estación Cerrillos</p>
-            </div>
-        </div>
+        
 
         <!-- A. Contenedor del Gráfico Histórico -->
         <div style="page-break-inside: avoid; margin-bottom: 20px; border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px;">
