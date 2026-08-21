@@ -443,6 +443,72 @@
 			background-color: #f1f5f9;
 			font-weight: 700;
 		}
+		
+		/* Estilos específicos y forzados para exportación PDF en A4 */
+		#pdfExportTemplate {
+			width: 190mm; /* Ancho real útil de A4 restando márgenes */
+			box-sizing: border-box;
+			background: #ffffff !important;
+			color: #000000 !important;
+		}
+
+		.pdf-page-1 {
+			height: 270mm; /* Limita la altura total de la página 1 para evitar saltos no deseados */
+			max-height: 270mm;
+			overflow: hidden;
+			box-sizing: border-box;
+		}
+
+		.pdf-page-2 {
+			height: 270mm;
+			max-height: 270mm;
+			overflow: hidden;
+			box-sizing: border-box;
+			page-break-before: always;
+		}
+
+		/* Control estricto de altura de imágenes para evitar saltos */
+		#pdfPrecipImg, #pdfTempImg {
+			max-height: 140px !important;
+			width: 100% !important;
+			object-fit: contain !important;
+		}
+
+		#pdf-historico-container img {
+			max-height: 120px !important;
+			width: 100% !important;
+			object-fit: contain !important;
+		}
+
+		/* Ajuste de tarjetas KPI dentro del PDF para evitar desbordamiento */
+		#pdfKpiClone {
+			display: flex !important;
+			flex-direction: row !important;
+			justify-content: space-between !important;
+			gap: 4px !important;
+		}
+
+		#pdfKpiClone .kpi-card {
+			flex: 1 !important;
+			padding: 6px 8px !important;
+			border: 1px solid #cbd5e1 !important;
+			border-radius: 6px !important;
+		}
+
+		#pdfKpiClone .kpi-title {
+			font-size: 8px !important;
+		}
+
+		#pdfKpiClone .kpi-value {
+			font-size: 14px !important;
+			margin: 4px 0 !important;
+		}
+
+		#pdfKpiClone .kpi-subtext {
+			font-size: 8px !important;
+		}
+		
+		
     </style>
 </head>
 <body>
@@ -1054,7 +1120,7 @@
 			if (pdfYearElem) pdfYearElem.innerText = selectedYear;
 			if (pdfDateElem) pdfDateElem.innerText = new Date().toLocaleDateString('es-AR');
 
-			// 2. Clonar KPIs y Tabla de datos dinámicamente desde la pantalla
+			// 2. Clonar KPIs y Tabla de datos
 			const mainKpiGrid = document.querySelector('.kpi-grid');
 			const pdfKpiContainer = document.getElementById('pdfKpiClone');
 			if (mainKpiGrid && pdfKpiContainer) {
@@ -1067,7 +1133,7 @@
 				pdfTable.innerHTML = mainTable.innerHTML;
 			}
 
-			// 3. Sincronizar Canvas a Imágenes (Mapeo corregido a los IDs reales)
+			// 3. Convertir Canvas a Imagen
 			const precipCanvas = document.getElementById('precipChart');
 			const tempCanvas = document.getElementById('tempChart');
 			const historicoCanvas = document.getElementById('historicalPrecipChart');
@@ -1083,22 +1149,20 @@
 				historicoContainer.innerHTML = '';
 				const img = document.createElement('img');
 				img.src = historicoCanvas.toDataURL('image/png', 1.0);
-				img.style.width = '100%';
-				img.style.height = 'auto';
 				historicoContainer.appendChild(img);
 			}
 
-			// 4. Configurar opciones de html2pdf
+			// 4. Configurar html2pdf con corte estricto por CSS
 			const opt = {
-				margin:       [8, 8, 8, 8],
+				margin:       [5, 5, 5, 5], // Márgenes pequeños en mm
 				filename:     `Reporte_INTA_Cerrillos_${selectedYear}.pdf`,
 				image:        { type: 'jpeg', quality: 0.98 },
 				html2canvas:  { scale: 2, useCORS: true, logging: false },
 				jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-				pagebreak:    { mode: ['css', 'legacy'] }
+				pagebreak:    { mode: 'css' } // Forzar respeto a page-break-before: always sin divisiones automáticas
 			};
 
-			// 5. Renderizar y Guardar
+			// 5. Renderizar
 			template.style.display = 'block';
 
 			try {
@@ -1109,7 +1173,6 @@
 				template.style.display = 'none';
 			}
 		}
-
         window.onload = initApp;
     </script>
 	<!-- Plantilla oculta para generación de PDF -->
